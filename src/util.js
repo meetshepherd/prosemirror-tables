@@ -7,6 +7,28 @@ import {tableNodeTypes} from "./schema";
 
 export const key = new PluginKey("selectingCells")
 
+const closestParent = ($pos, predicate) => {
+  for (var i = $pos.depth; i > 0; i--) {
+    const node = $pos.node(i);
+    if (predicate(node)) {
+      return {
+        pos: i > 0 ? $pos.before(i) : 0,
+        start: $pos.start(i),
+        depth: i,
+        node: node,
+      };
+    }
+  }
+};
+
+export const closestCell = ($pos) => {
+  const predicate = (node) => {
+    return node.type.spec.tableRole && /cell/i.test(node.type.spec.tableRole);
+  };
+  return closestParent($pos, predicate);
+};
+
+
 export function cellAround($pos) {
   for (let d = $pos.depth - 1; d > 0; d--)
     if ($pos.node(d).type.spec.tableRole == "row") return $pos.node(0).resolve($pos.before(d + 1))
@@ -23,6 +45,11 @@ export function cellWrapping($pos) {
 
 export function isInTable(state) {
   let $head = state.selection.$head
+  for (let d = $head.depth; d > 0; d--) if ($head.node(d).type.spec.tableRole == "row") return true
+  return false
+}
+
+export function isHeadInsideTable($head) {
   for (let d = $head.depth; d > 0; d--) if ($head.node(d).type.spec.tableRole == "row") return true
   return false
 }

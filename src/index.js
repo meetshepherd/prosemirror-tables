@@ -4,10 +4,10 @@
 // transaction, the shapes of tables are normalized to be rectangular
 // and not contain overlapping cells.
 
-import {Plugin} from "prosemirror-state"
+import {Plugin, Selection} from "prosemirror-state"
 
 import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown} from "./input"
-import {key as tableEditingKey} from "./util"
+import {key as tableEditingKey, isHeadInsideTable, closestCell} from "./util"
 import {drawCellSelection, normalizeSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
 
@@ -23,7 +23,13 @@ import {fixTables, fixTablesKey} from "./fixtables"
 // rather broadly, and other plugins, like the gap cursor or the
 // column-width dragging plugin, might want to get a turn first to
 // perform more specific behavior.
-export function tableEditing({ allowTableNodeSelection = false } = {}) {
+export function tableEditing({
+  allowTableNodeSelection = false,
+  callbacks = {
+    selectionChangedOnTable: (rects) => {},
+    contextMenuOnCell: (rect) => {},
+  },
+} = {}) {
   return new Plugin({
     key: tableEditingKey,
 
@@ -45,11 +51,48 @@ export function tableEditing({ allowTableNodeSelection = false } = {}) {
       decorations: drawCellSelection,
 
       handleDOMEvents: {
-        mousedown: handleMouseDown
+        mousedown: handleMouseDown,
+        handleKeyDown,
+        contextmenu: (view, event) => {
+          const head = view.state.selection.$head;
+          if (isHeadInsideTable(head)) {
+            // It is handled on handle click on
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return true;
+          }
+          return false;
+        },
       },
 
-      createSelectionBetween(view) {
+      createSelectionBetween(view, anchor, head) {
+        const currentResolvedPos = view.state.selection.$head.pos;
+        const nextResolvedPos = head.pos;
+        if (Math.abs(currentResolvedPos - nextResolvedPos) > 1) {
+          // captures most normal events and reduces the execution of this significantly
+          const inTable = isHeadInsideTable(head);
+          if (inTable) {
+            const cell = closestCell(head);
+            const domCell = view.domAtPos(cell.start).node;
+            const domTable = domCell.parentNode.parentNode;
+            callbacks.selectionChangedOnTable({
+              cellRect: domCell.getBoundingClientRect(),
+              tableRect: domTable.getBoundingClientRect(),
+            });
+            // view.dispatch(view.state.tr.setMeta(plugin, meta));
+          }
+        }
         if (tableEditingKey.getState(view.state) != null) return view.state.selection
+      },
+
+      handleClickOn(view, pos, node, nodePos, event, direct) {
+        if (event.type === 'mouseup' && event.button === 2 && node.type.name === 'table_cell') {
+          const domCell = view.domAtPos(nodePos + 1).node;
+          callbacks.contextMenuOnCell(domCell.getBoundingClientRect());
+          return true;
+        }
+        return false;
       },
 
       handleTripleClick,
@@ -66,7 +109,7 @@ export function tableEditing({ allowTableNodeSelection = false } = {}) {
 }
 
 export {fixTables, handlePaste, fixTablesKey}
-export {cellAround, isInTable, selectionCell, moveCellForward, inSameTable, findCell, colCount, nextCell, setAttr, pointsAtCell, removeColSpan, addColSpan, columnIsHeader} from "./util";
+export {closestCell, cellAround, isInTable, isHeadInsideTable, selectionCell, moveCellForward, inSameTable, findCell, colCount, nextCell, setAttr, pointsAtCell, removeColSpan, addColSpan, columnIsHeader} from "./util";
 export {tableNodes, tableNodeTypes} from "./schema"
 export {CellSelection} from "./cellselection"
 export {TableMap} from "./tablemap"

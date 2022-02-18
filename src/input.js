@@ -190,11 +190,18 @@ function atEndOfCell(view, axis, dir) {
   return null
 }
 
+/**
+ * Called for every mouse related event. 
+ */
 function domInCell(view, dom) {
-  for (; dom && dom != view.dom; dom = dom.parentNode)
+  for (; dom && dom != view.dom; dom = dom.parentNode) {
     if (dom.nodeName == "TD" || dom.nodeName == "TH") return dom
+  }
 }
 
+/**
+ * Called when selecting table cells
+ */
 function cellUnderMouse(view, event) {
   let mousePos = view.posAtCoords({left: event.clientX, top: event.clientY})
   if (!mousePos) return null

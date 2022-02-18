@@ -26,6 +26,10 @@ import { NodeView } from 'prosemirror-view';
 
 export interface TableEditingOptions {
   allowTableNodeSelection?: boolean;
+  callbacks?: {
+    selectionChangedOnTable: (rects: {cellRect: DOMRect, tableRect: DOMRect}) => any | undefined | null,
+    contextMenuOnCell: (rect: DOMRect) => void,
+  },
 }
 
 export interface TableNodesOptions {
