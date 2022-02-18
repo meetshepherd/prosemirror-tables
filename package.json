@@ -1,5 +1,5 @@
 {
-  "name": "prosemirror-tables",
+  "name": "@meetshepherd/prosemirror-tables",
   "version": "1.1.1",
   "description": "ProseMirror's rowspan/colspan tables component",
   "main": "dist/index.js",
@@ -7,9 +7,9 @@
   "style": "style/tables.css",
   "typings": "./index.d.ts",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/prosemirror/prosemirror-tables.git"
+  "homepage": "https://github.com/meethshepherd/prosemirror-tables#readme",
+  "bugs": {
+    "url": "https://github.com/meethshepherd/prosemirror-tables/issues"
   },
   "maintainers": [
     {
@@ -21,6 +21,9 @@
       "email": "hhuang@atlassian.com"
     }
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "dependencies": {
     "prosemirror-keymap": "^1.1.4",
     "prosemirror-model": "^1.14.3",
