@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "style": "style/tables.css",
-  "typings": "./index.d.ts",
+  "typings": "index.d.ts",
   "license": "MIT",
   "homepage": "https://github.com/meethshepherd/prosemirror-tables#readme",
   "bugs": {
