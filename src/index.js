@@ -81,6 +81,8 @@ export function tableEditing({
               tableRect: domTable.getBoundingClientRect(),
             });
             // view.dispatch(view.state.tr.setMeta(plugin, meta));
+          } else {
+            callbacks.selectionChangedOnTable(undefined);
           }
         }
         if (tableEditingKey.getState(view.state) != null) return view.state.selection
