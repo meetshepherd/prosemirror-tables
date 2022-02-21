@@ -46,7 +46,25 @@ export function tableEditing({
         return deleted ? null : pos
       }
     },
-
+    view: (editorView) => ({
+      update: (view, prevState) => {
+        const { state } = view;
+        const { selection } = state;
+        const { selection: prevSelection } = prevState;
+        if (Math.abs(selection.$head.pos - prevSelection.$head.pos) > 1) {
+          if (isHeadInsideTable(selection.$head)) {
+            const cell = closestCell(selection.$head);
+            const domCell = view.domAtPos(cell.start).node;
+            const domTable = domCell.parentNode.parentNode;
+            callbacks.selectionChangedOnTable({
+              cellRect: domCell.getBoundingClientRect(),
+              tableRect: domTable.getBoundingClientRect(),
+            });
+          }
+        }
+      },
+      destroy: () => {},
+    }),
     props: {
       decorations: drawCellSelection,
 

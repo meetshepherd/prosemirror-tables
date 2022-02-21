@@ -4,6 +4,7 @@ import {cellAround, pointsAtCell, setAttr} from "./util"
 import {TableMap} from "./tablemap"
 import {TableView, updateColumns} from "./tableview"
 import {tableNodeTypes} from "./schema"
+import { ySyncPlugin, absolutePositionToRelativePosition, relativePositionToAbsolutePosition } from "y-prosemirror"
 
 export const key = new PluginKey("tableColumnResizing")
 
@@ -16,8 +17,8 @@ export function columnResizing({ handleWidth = 5, cellMinWidth = 25, View = Tabl
           (node, view) => new View(node, cellMinWidth, view)
         return new ResizeState(-1, false)
       },
-      apply(tr, prev) {
-        return prev.apply(tr)
+      apply(tr, stateValue, oldState, newState) {
+        return stateValue.apply(tr, oldState, newState);
       }
     },
     props: {
@@ -34,7 +35,7 @@ export function columnResizing({ handleWidth = 5, cellMinWidth = 25, View = Tabl
 
       decorations(state) {
         let pluginState = key.getState(state)
-        if (pluginState.activeHandle > -1) return handleDecorations(state, pluginState.activeHandle)
+        return pluginState.decorations(state)
       },
 
       nodeViews: {}
@@ -49,8 +50,9 @@ class ResizeState {
     this.dragging = dragging
   }
 
-  apply(tr) {
-    let state = this, action = tr.getMeta(key)
+  apply(tr, oldState, newState) {
+    let state = this
+    let action = tr.getMeta(key)
     if (action && action.setHandle != null)
       return new ResizeState(action.setHandle, null)
     if (action && action.setDragging !== undefined)
@@ -61,6 +63,34 @@ class ResizeState {
       state = new ResizeState(handle, state.dragging)
     }
     return state
+  }
+
+  decorations(state) {
+    if (this.activeHandle > -1) {
+      try {
+        let decorations = []
+        let $cell = state.doc.resolve(this.activeHandle)
+        let table = $cell.node(-1), map = TableMap.get(table), start = $cell.start(-1)
+        let col = map.colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan
+        for (let row = 0; row < map.height; row++) {
+          let index = col + row * map.width - 1
+          // For positions that are have either a different cell or the end
+          // of the table to their right, and either the top of the table or
+          // a different cell above them, add a decoration
+          if ((col == map.width || map.map[index] != map.map[index + 1]) &&
+              (row == 0 || map.map[index - 1] != map.map[index - 1 - map.width])) {
+            let cellPos = map.map[index]
+            let pos = start + cellPos + table.nodeAt(cellPos).nodeSize - 1
+            let dom = document.createElement("div")
+            dom.className = "column-resize-handle"
+            decorations.push(Decoration.widget(pos, dom))
+          }
+        }
+        return DecorationSet.create(state.doc, decorations)
+      } catch (e) {
+        return DecorationSet.empty
+      }
+    }
   }
 }
 
@@ -200,26 +230,4 @@ function zeroes(n) {
   let result = []
   for (let i = 0; i < n; i++) result.push(0)
   return result
-}
-
-function handleDecorations(state, cell) {
-  let decorations = []
-  let $cell = state.doc.resolve(cell)
-  let table = $cell.node(-1), map = TableMap.get(table), start = $cell.start(-1)
-  let col = map.colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan
-  for (let row = 0; row < map.height; row++) {
-    let index = col + row * map.width - 1
-    // For positions that are have either a different cell or the end
-    // of the table to their right, and either the top of the table or
-    // a different cell above them, add a decoration
-    if ((col == map.width || map.map[index] != map.map[index + 1]) &&
-        (row == 0 || map.map[index - 1] != map.map[index - 1 - map.width])) {
-      let cellPos = map.map[index]
-      let pos = start + cellPos + table.nodeAt(cellPos).nodeSize - 1
-      let dom = document.createElement("div")
-      dom.className = "column-resize-handle"
-      decorations.push(Decoration.widget(pos, dom))
-    }
-  }
-  return DecorationSet.create(state.doc, decorations)
 }
