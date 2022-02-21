@@ -4,11 +4,11 @@ import {cellAround, pointsAtCell, setAttr} from "./util"
 import {TableMap} from "./tablemap"
 import {TableView, updateColumns} from "./tableview"
 import {tableNodeTypes} from "./schema"
-import { ySyncPlugin, absolutePositionToRelativePosition, relativePositionToAbsolutePosition } from "y-prosemirror"
+import { ySyncPluginKey, absolutePositionToRelativePosition, relativePositionToAbsolutePosition } from "y-prosemirror"
 
 export const key = new PluginKey("tableColumnResizing")
 
-export function columnResizing({ handleWidth = 5, cellMinWidth = 25, View = TableView, lastColumnResizable = true } = {}) {
+export function columnResizing({ handleWidth = 25, cellMinWidth = 25, View = TableView, lastColumnResizable = false } = {}) {
   let plugin = new Plugin({
     key,
     state: {
@@ -94,6 +94,75 @@ class ResizeState {
   }
 }
 
+// class ResizeState {
+//   constructor(activeHandle, dragging, relativePosition) {
+//     this.activeHandle = activeHandle
+//     this.dragging = dragging
+//     this.relativePosition = relativePosition
+//   }
+
+//   setRelativeHandlePosition(newState) {
+//     const YState = ySyncPluginKey.getState(newState);
+//     this.relativePosition = absolutePositionToRelativePosition(this.activeHandle, YState.type, YState.binding.mapping);
+//   }
+
+//   apply(tr, oldState, newState) {
+//     let state = this
+//     let action = tr.getMeta(key)
+//     let newS = state;
+//     if (action && action.setHandle != null)
+//       newS = new ResizeState(action.setHandle, null)
+//     else if (action && action.setDragging !== undefined)
+//       newS = new ResizeState(state.activeHandle, action.setDragging)
+//     else {
+//       if (state.activeHandle > -1 && tr.docChanged) {
+//         let handle = tr.mapping.map(state.activeHandle, -1)
+//         if (!pointsAtCell(tr.doc.resolve(handle))) handle = null
+//         newS = new ResizeState(handle, state.dragging)
+//       }
+//     }
+//     if (newS && newS.activeHandle > -1) {
+//       newS.setRelativeHandlePosition(newState);
+//     }
+//     return newS
+//   }
+
+//   decorations(state) {
+//     if (this.activeHandle > -1) {
+//       try {
+//         let decorations = []
+//         const YState = ySyncPluginKey.getState(state);
+//         const pos = relativePositionToAbsolutePosition(YState.doc, YState.type, this.relativePosition, YState.binding.mapping);
+//         if (typeof pos === "number") {
+//           let $cell = state.doc.resolve(pos)
+//           let table = $cell.node(-1), map = TableMap.get(table), start = $cell.start(-1)
+//           let col = map.colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan
+//           for (let row = 0; row < map.height; row++) {
+//             let index = col + row * map.width - 1
+//             // For positions that are have either a different cell or the end
+//             // of the table to their right, and either the top of the table or
+//             // a different cell above them, add a decoration
+//             if ((col == map.width || map.map[index] != map.map[index + 1]) &&
+//                 (row == 0 || map.map[index - 1] != map.map[index - 1 - map.width])) {
+//               let cellPos = map.map[index]
+//               let pos = start + cellPos + table.nodeAt(cellPos).nodeSize - 1
+//               let dom = document.createElement("div")
+//               dom.className = "column-resize-handle"
+//               decorations.push(Decoration.widget(pos, dom))
+//             }
+//           }
+//           return DecorationSet.create(state.doc, decorations)
+//         }
+//         else {
+//           return DecorationSet.empty
+//         }
+//       } catch (e) {
+//         return DecorationSet.empty
+//       }
+//     }
+//   }
+// }
+
 function handleMouseMove(view, event, handleWidth, cellMinWidth, lastColumnResizable) {
   let pluginState = key.getState(view.state)
 
@@ -129,33 +198,38 @@ function handleMouseLeave(view) {
 }
 
 function handleMouseDown(view, event, cellMinWidth) {
-  let pluginState = key.getState(view.state)
-  if (pluginState.activeHandle == -1 || pluginState.dragging) return false
-
-  let cell = view.state.doc.nodeAt(pluginState.activeHandle)
-  let width = currentColWidth(view, pluginState.activeHandle, cell.attrs)
-  view.dispatch(view.state.tr.setMeta(key, {setDragging: {startX: event.clientX, startWidth: width}}))
-
-  function finish(event) {
-    window.removeEventListener("mouseup", finish)
-    window.removeEventListener("mousemove", move)
+  try {
     let pluginState = key.getState(view.state)
-    if (pluginState.dragging) {
-      updateColumnWidth(view, pluginState.activeHandle, draggedWidth(pluginState.dragging, event, cellMinWidth))
-      view.dispatch(view.state.tr.setMeta(key, {setDragging: null}))
+    if (pluginState.activeHandle == -1 || pluginState.dragging) return false
+
+    let cell = view.state.doc.nodeAt(pluginState.activeHandle)
+    let width = currentColWidth(view, pluginState.activeHandle, cell.attrs)
+    view.dispatch(view.state.tr.setMeta(key, {setDragging: {startX: event.clientX, startWidth: width}}))
+    document.activeElement.blur();
+
+    function finish(event) {
+      window.removeEventListener("mouseup", finish)
+      window.removeEventListener("mousemove", move)
+      let pluginState = key.getState(view.state)
+      if (pluginState.dragging) {
+        updateColumnWidth(view, pluginState.activeHandle, draggedWidth(pluginState.dragging, event, cellMinWidth))
+        view.dispatch(view.state.tr.setMeta(key, {setDragging: null}))
+      }
     }
-  }
-  function move(event) {
-    if (!event.which) return finish(event)
-    let pluginState = key.getState(view.state)
-    let dragged = draggedWidth(pluginState.dragging, event, cellMinWidth)
-    displayColumnWidth(view, pluginState.activeHandle, dragged, cellMinWidth)
-  }
+    function move(event) {
+      if (!event.which) return finish(event)
+      let pluginState = key.getState(view.state)
+      let dragged = draggedWidth(pluginState.dragging, event, cellMinWidth)
+      displayColumnWidth(view, pluginState.activeHandle, dragged, cellMinWidth)
+    }
 
-  window.addEventListener("mouseup", finish)
-  window.addEventListener("mousemove", move)
-  event.preventDefault()
-  return true
+    window.addEventListener("mouseup", finish)
+    window.addEventListener("mousemove", move)
+    event.preventDefault()
+    return true
+  } catch (e) {
+    return false
+  }
 }
 
 function currentColWidth(view, cellPos, {colspan, colwidth}) {
@@ -199,31 +273,38 @@ function updateHandle(view, value) {
 }
 
 function updateColumnWidth(view, cell, width) {
-  let $cell = view.state.doc.resolve(cell)
-  let table = $cell.node(-1), map = TableMap.get(table), start = $cell.start(-1)
-  let col = map.colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan - 1
-  let tr = view.state.tr
-  for (let row = 0; row < map.height; row++) {
-    let mapIndex = row * map.width + col
-    // Rowspanning cell that has already been handled
-    if (row && map.map[mapIndex] == map.map[mapIndex - map.width]) continue
-    let pos = map.map[mapIndex], {attrs} = table.nodeAt(pos)
-    let index = attrs.colspan == 1 ? 0 : col - map.colCount(pos)
-    if (attrs.colwidth && attrs.colwidth[index] == width) continue
-    let colwidth = attrs.colwidth ? attrs.colwidth.slice() : zeroes(attrs.colspan)
-    colwidth[index] = width
-    tr.setNodeMarkup(start + pos, null, setAttr(attrs, "colwidth", colwidth))
+  try {
+    let $cell = view.state.doc.resolve(cell)
+    let table = $cell.node(-1), map = TableMap.get(table), start = $cell.start(-1)
+    let col = map.colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan - 1
+    let tr = view.state.tr
+    for (let row = 0; row < map.height; row++) {
+      let mapIndex = row * map.width + col
+      // Rowspanning cell that has already been handled
+      if (row && map.map[mapIndex] == map.map[mapIndex - map.width]) continue
+      let pos = map.map[mapIndex], {attrs} = table.nodeAt(pos)
+      let index = attrs.colspan == 1 ? 0 : col - map.colCount(pos)
+      if (attrs.colwidth && attrs.colwidth[index] == width) continue
+      let colwidth = attrs.colwidth ? attrs.colwidth.slice() : zeroes(attrs.colspan)
+      colwidth[index] = width
+      tr.setNodeMarkup(start + pos, null, setAttr(attrs, "colwidth", colwidth))
+    }
+    if (tr.docChanged) view.dispatch(tr)
+  } catch (e) {
+    console.log(e)
   }
-  if (tr.docChanged) view.dispatch(tr)
 }
 
 function displayColumnWidth(view, cell, width, cellMinWidth) {
-  let $cell = view.state.doc.resolve(cell)
-  let table = $cell.node(-1), start = $cell.start(-1)
-  let col = TableMap.get(table).colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan - 1
-  let dom = view.domAtPos($cell.start(-1)).node
-  while (dom.nodeName != "TABLE") dom = dom.parentNode
-  updateColumns(table, dom.firstChild, dom, cellMinWidth, col, width)
+  try {
+    let $cell = view.state.doc.resolve(cell)
+    let table = $cell.node(-1), start = $cell.start(-1)
+    let col = TableMap.get(table).colCount($cell.pos - start) + $cell.nodeAfter.attrs.colspan - 1
+    let dom = view.domAtPos($cell.start(-1)).node
+    while (dom.nodeName != "TABLE") dom = dom.parentNode
+    updateColumns(table, dom.firstChild, dom, cellMinWidth, col, width)
+  } catch(e) {
+  }
 }
 
 function zeroes(n) {
