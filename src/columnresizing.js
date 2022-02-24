@@ -291,7 +291,7 @@ function updateColumnWidth(view, cell, width) {
     }
     if (tr.docChanged) view.dispatch(tr)
   } catch (e) {
-    console.log(e)
+    // console.log(e)
   }
 }
 

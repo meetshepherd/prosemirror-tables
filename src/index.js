@@ -11,6 +11,10 @@ import {key as tableEditingKey, isHeadInsideTable, closestCell} from "./util"
 import {drawCellSelection, normalizeSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
 
+const sameRect = (r1, r2) => {
+  return r1.x === r2.x && r1.y === r2.y && r1.width === r2.width && r1.height === r2.height
+};
+
 // :: () → Plugin
 //
 // Creates a [plugin](http://prosemirror.net/docs/ref/#state.Plugin)
@@ -51,15 +55,42 @@ export function tableEditing({
         const { state } = view;
         const { selection } = state;
         const { selection: prevSelection } = prevState;
+        // if the head position is changed
         if (Math.abs(selection.$head.pos - prevSelection.$head.pos) > 1) {
+          // if the new head is inside a table
           if (isHeadInsideTable(selection.$head)) {
             const cell = closestCell(selection.$head);
             const domCell = view.domAtPos(cell.start).node;
             const domTable = domCell.parentNode.parentNode;
+            // if old cursor is inside a table, we need to check the table bounding rects
+            if (isHeadInsideTable(prevSelection.$head)) {
+              const oldCell = closestCell(prevSelection.$head);
+              const oldDomCell = view.domAtPos(oldCell.start).node;
+              const oldDomTable = oldDomCell.parentNode.parentNode;
+              // if the table is identical, check its bounding rects
+              if (oldDomTable === domTable) {
+                const oldRect = oldDomTable.getBoundingClientRect();
+                const rect = domTable.getBoundingClientRect();
+                // if the table cell is moved in any direction
+                if (!sameRect(oldRect, rect)) {
+                  callbacks.selectionChangedOnTable({
+                    cellRect: domCell.getBoundingClientRect(),
+                    tableRect: rect,
+                  });
+                  return;
+                } else {
+                  // otherwise noting to update, just table wide updates cause problems
+                  return;
+                }
+              }
+              // otherwise fallback to the default behavior, update(), the tables are different
+            }
+            // if the old head is not part of a table, we sure need to update
             callbacks.selectionChangedOnTable({
               cellRect: domCell.getBoundingClientRect(),
               tableRect: domTable.getBoundingClientRect(),
             });
+            return;
           }
         }
       },
