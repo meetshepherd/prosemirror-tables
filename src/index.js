@@ -91,6 +91,9 @@ export function tableEditing({
               tableRect: domTable.getBoundingClientRect(),
             });
             return;
+          } else if (isHeadInsideTable(prevSelection.$head)) {
+            // there was a table, but it got deleted
+            callbacks.selectionChangedOnTable(undefined);
           }
         }
       },
