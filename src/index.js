@@ -6,7 +6,7 @@
 
 import {Plugin, Selection} from "prosemirror-state"
 
-import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown} from "./input"
+import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown, preventCTX} from "./input"
 import {key as tableEditingKey, isHeadInsideTable, closestCell} from "./util"
 import {drawCellSelection, normalizeSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
@@ -91,19 +91,19 @@ export function tableEditing({
               tableRect: domTable.getBoundingClientRect(),
             });
             return;
-          } else if (isHeadInsideTable(prevSelection.$head)) {
-            // there was a table, but it got deleted
-            callbacks.selectionChangedOnTable(undefined);
           }
         }
       },
-      destroy: () => {},
+      destroy: () => {
+        callbacks.selectionChangedOnTable(undefined);
+      },
     }),
     props: {
       decorations: drawCellSelection,
 
       handleDOMEvents: {
-        mousedown: handleMouseDown,
+        mousedown: (view, event) => handleMouseDown(view, event, callbacks),
+        mouseup: (view, event) => preventCTX(view, event, callbacks),
         handleKeyDown,
         contextmenu: (view, event) => {
           const head = view.state.selection.$head;
@@ -141,9 +141,14 @@ export function tableEditing({
       },
 
       handleClickOn(view, pos, node, nodePos, event, direct) {
-        if (event.type === 'mouseup' && event.button === 2 && node.type.name === 'table_cell') {
+        if (event.button === 2 && node.type.name === 'table_cell') {
           const domCell = view.domAtPos(nodePos + 1).node;
-          callbacks.contextMenuOnCell(domCell.getBoundingClientRect());
+          setTimeout(() => {
+            callbacks.contextMenuOnCell(domCell.getBoundingClientRect());
+          }, 1);
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
           return true;
         }
         return false;
