@@ -111,6 +111,36 @@ export function handlePaste(view, _, slice) {
   }
 }
 
+export function preventCTX(view, evt, callbacks)
+{
+  if (evt.button === 2) {
+    // being a mouseup event, we have the proper state with an updated cursor
+    const sel = view.state.selection;
+    const head = sel.$head;
+    for (let i=head.depth; i>0; i-=1) {
+      const node = head.node(i);
+      const tableRole = node.type.spec.tableRole;
+      if (tableRole === "cell" || tableRole === "header_cell") {
+        evt.preventDefault();
+        evt.stopPropagation();
+        evt.stopImmediatePropagation();
+        const cell = closestCell(head);
+        const domCell = view.domAtPos(cell.start).node;
+        const domTable = domCell.parentNode.parentNode;
+        callbacks.selectionChangedOnTable({
+          cellRect: domCell.getBoundingClientRect(),
+          tableRect: domTable.getBoundingClientRect(),
+        });
+        setTimeout(() => {
+          callbacks.contextMenuOnCell(domCell.getBoundingClientRect());
+        }, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 export function handleMouseDown(view, startEvent) {
   if (startEvent.ctrlKey || startEvent.metaKey) return
 
