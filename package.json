@@ -1,6 +1,6 @@
 {
   "name": "@meetshepherd/prosemirror-tables",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "ProseMirror's rowspan/colspan tables component",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
