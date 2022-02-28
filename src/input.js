@@ -6,7 +6,7 @@ import {Selection, TextSelection} from "prosemirror-state"
 import {keydownHandler} from "prosemirror-keymap"
 
 import {key, nextCell, cellAround, inSameTable,
-        isInTable, selectionCell} from "./util"
+        isInTable, selectionCell, closestCell} from "./util"
 import {CellSelection} from "./cellselection"
 import {TableMap} from "./tablemap"
 import {pastedCells, fitSlice, clipCells, insertCells} from "./copypaste"
