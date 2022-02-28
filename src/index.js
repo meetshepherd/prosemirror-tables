@@ -4,10 +4,10 @@
 // transaction, the shapes of tables are normalized to be rectangular
 // and not contain overlapping cells.
 
-import {Plugin, Selection} from "prosemirror-state"
+import {AllSelection, Plugin, Selection} from "prosemirror-state"
 
 import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown, preventCTX} from "./input"
-import {key as tableEditingKey, isHeadInsideTable, closestCell} from "./util"
+import {key as tableEditingKey, isHeadInsideTable, closestCell, closestParent} from "./util"
 import {drawCellSelection, normalizeSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
 
@@ -54,6 +54,10 @@ export function tableEditing({
       update: (view, prevState) => {
         const { state } = view;
         const { selection } = state;
+        if (selection instanceof AllSelection) {
+          callbacks.selectionChangedOnTable(undefined);
+          return;
+        }
         const { selection: prevSelection } = prevState;
         // if the head position is changed
         if (Math.abs(selection.$head.pos - prevSelection.$head.pos) > 1) {
@@ -65,6 +69,8 @@ export function tableEditing({
             // if old cursor is inside a table, we need to check the table bounding rects
             if (isHeadInsideTable(prevSelection.$head)) {
               const oldCell = closestCell(prevSelection.$head);
+              // const oldTable = closestParent(prevSelection.$head, (node) => node.type.spec.tableRole === 'table');
+              // const table = closestParent(prevSelection.$head, (node) => node.type.spec.tableRole === 'table');
               const oldDomCell = view.domAtPos(oldCell.start).node;
               const oldDomTable = oldDomCell.parentNode.parentNode;
               // if the table is identical, check its bounding rects
@@ -72,7 +78,10 @@ export function tableEditing({
                 const oldRect = oldDomTable.getBoundingClientRect();
                 const rect = domTable.getBoundingClientRect();
                 // if the table cell is moved in any direction
+                // console.debug('here', cell, oldCell);
+                // console.debug('here', table, oldTable);
                 if (!sameRect(oldRect, rect)) {
+                  console.debug('not same rect');
                   callbacks.selectionChangedOnTable({
                     cellRect: domCell.getBoundingClientRect(),
                     tableRect: rect,
@@ -91,6 +100,8 @@ export function tableEditing({
               tableRect: domTable.getBoundingClientRect(),
             });
             return;
+          } else {
+            callbacks.selectionChangedOnTable(undefined);
           }
         }
       },

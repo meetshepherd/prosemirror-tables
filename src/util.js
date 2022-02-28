@@ -7,7 +7,7 @@ import {tableNodeTypes} from "./schema";
 
 export const key = new PluginKey("selectingCells")
 
-const closestParent = ($pos, predicate) => {
+export const closestParent = ($pos, predicate) => {
   for (var i = $pos.depth; i > 0; i--) {
     const node = $pos.node(i);
     if (predicate(node)) {
