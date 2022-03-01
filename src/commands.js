@@ -14,7 +14,8 @@ import {
   moveCellForward,
   removeColSpan,
   selectionCell,
-  setAttr
+  setAttr,
+  DefaultCellContent
 } from "./util"
 import {tableNodeTypes} from "./schema"
 
@@ -54,7 +55,7 @@ export function addColumn(tr, {map, tableStart, table}, col) {
       let type = refColumn == null ? tableNodeTypes(table.type.schema).cell
           : table.nodeAt(map.map[index + refColumn]).type
       let pos = map.positionAt(row, col, table)
-      tr.insert(tr.mapping.map(tableStart + pos), type.createAndFill())
+      tr.insert(tr.mapping.map(tableStart + pos), type.createAndFill({}, DefaultCellContent.node))
     }
   }
   return tr
@@ -139,7 +140,7 @@ export function addRow(tr, {map, tableStart, table}, row) {
     } else {
       let type = refRow == null ? tableNodeTypes(table.type.schema).cell
           : table.nodeAt(map.map[index + refRow * map.width]).type
-      cells.push(type.createAndFill())
+      cells.push(type.createAndFill({}, DefaultCellContent.node))
     }
   }
   tr.insert(rowPos, tableNodeTypes(table.type.schema).row.create(null, cells))
@@ -313,7 +314,7 @@ export function splitCellWithType(getCellType) {
         if (row == rect.top) pos += cellNode.nodeSize
         for (let col = rect.left, i = 0; col < rect.right; col++, i++) {
           if (col == rect.left && row == rect.top) continue
-          tr.insert(lastCell = tr.mapping.map(pos + rect.tableStart, 1), getCellType({ node: cellNode, row, col}).createAndFill(attrs[i]))
+          tr.insert(lastCell = tr.mapping.map(pos + rect.tableStart, 1), getCellType({ node: cellNode, row, col}).createAndFill(attrs[i], DefaultCellContent.node))
         }
       }
       tr.setNodeMarkup(cellPos, getCellType({ node: cellNode, row: rect.top, col: rect.left}), attrs[0])

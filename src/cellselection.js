@@ -75,16 +75,17 @@ export class CellSelection extends Selection {
           seen[pos] = true
           let cellRect = map.findCell(pos), cell = table.nodeAt(pos)
           let extraLeft = rect.left - cellRect.left, extraRight = cellRect.right - rect.right
+          // const newPara = state.schema.nodes.paragraph.createAndFill({})
           if (extraLeft > 0 || extraRight > 0) {
             let attrs = cell.attrs
             if (extraLeft > 0) attrs = removeColSpan(attrs, 0, extraLeft)
             if (extraRight > 0) attrs = removeColSpan(attrs, attrs.colspan - extraRight, extraRight)
-            if (cellRect.left < rect.left) cell = cell.type.createAndFill(attrs)
+            if (cellRect.left < rect.left) cell = cell.type.createAndFill(attrs, /* newPara */)
             else cell = cell.type.create(attrs, cell.content)
           }
           if (cellRect.top < rect.top || cellRect.bottom > rect.bottom) {
             let attrs = setAttr(cell.attrs, "rowspan", Math.min(cellRect.bottom, rect.bottom) - Math.max(cellRect.top, rect.top))
-            if (cellRect.top < rect.top) cell = cell.type.createAndFill(attrs)
+            if (cellRect.top < rect.top) cell = cell.type.createAndFill(attrs, /* newPara */)
             else cell = cell.type.create(attrs, cell.content)
           }
           rowContent.push(cell)

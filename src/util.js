@@ -7,6 +7,22 @@ import {tableNodeTypes} from "./schema";
 
 export const key = new PluginKey("selectingCells")
 
+class CellFiller {
+  constructor() {
+    this.nodeCreator = () => undefined;
+  }
+
+  set node(nodeCreator) {
+    this.nodeCreator = nodeCreator;
+  }
+
+  get node() {
+    return this.nodeCreator();
+  }
+};
+
+export const DefaultCellContent = new CellFiller();
+
 export const closestParent = ($pos, predicate) => {
   for (var i = $pos.depth; i > 0; i--) {
     const node = $pos.node(i);

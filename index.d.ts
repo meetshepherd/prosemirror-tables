@@ -19,7 +19,7 @@ import {
   Slice,
   ResolvedPos,
   Schema,
-  NodeType
+  NodeType,
 } from 'prosemirror-model';
 import { Mappable } from 'prosemirror-transform';
 import { NodeView } from 'prosemirror-view';
@@ -30,6 +30,7 @@ export interface TableEditingOptions {
     selectionChangedOnTable: (rects: {cellRect: DOMRect, tableRect: DOMRect}) => any | undefined | null,
     contextMenuOnCell: (rect: DOMRect) => void,
   },
+  cellContentFill?: (() => ProsemirrorNode | null | undefined) | null | undefined,
 }
 
 export interface TableNodesOptions {

@@ -7,7 +7,7 @@
 import {AllSelection, Plugin, Selection} from "prosemirror-state"
 
 import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown, preventCTX} from "./input"
-import {key as tableEditingKey, isHeadInsideTable, closestCell, closestParent} from "./util"
+import {key as tableEditingKey, isHeadInsideTable, closestCell, closestParent, DefaultCellContent} from "./util"
 import {drawCellSelection, normalizeSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
 
@@ -33,7 +33,9 @@ export function tableEditing({
     selectionChangedOnTable: (rects) => {},
     contextMenuOnCell: (rect) => {},
   },
+  cellContentFill = () => undefined,
 } = {}) {
+  DefaultCellContent.node = cellContentFill;
   return new Plugin({
     key: tableEditingKey,
 

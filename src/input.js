@@ -74,7 +74,7 @@ function deleteCellSelection(state, dispatch) {
   let sel = state.selection
   if (!(sel instanceof CellSelection)) return false
   if (dispatch) {
-    let tr = state.tr, baseContent = tableNodeTypes(state.schema).cell.createAndFill().content
+    let tr = state.tr, baseContent = tableNodeTypes(state.schema).cell.createAndFill({}, DefaultCellContent.node).content
     sel.forEachCell((cell, pos) => {
       if (!cell.content.eq(baseContent))
         tr.replace(tr.mapping.map(pos + 1), tr.mapping.map(pos + cell.nodeSize - 1),

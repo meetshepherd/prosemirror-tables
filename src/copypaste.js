@@ -67,7 +67,7 @@ function ensureRectangular(schema, rows) {
   for (let r = 0; r < widths.length; r++) {
     if (r >= rows.length) rows.push(Fragment.empty)
     if (widths[r] < width) {
-      let empty = tableNodeTypes(schema).cell.createAndFill(), cells = []
+      let empty = tableNodeTypes(schema).cell.createAndFill({}, DefaultCellContent.node), cells = []
       for (let i = widths[r]; i < width; i++) cells.push(empty)
       rows[r] = rows[r].append(Fragment.from(cells))
     }
