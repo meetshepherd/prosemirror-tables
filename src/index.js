@@ -139,6 +139,7 @@ export function tableEditing({
           const inTable = isHeadInsideTable(head);
           if (inTable) {
             const cell = closestCell(head);
+            if (!cell) return;
             const domCell = view.domAtPos(cell.start).node;
             const domTable = domCell.parentNode.parentNode;
             callbacks.selectionChangedOnTable({
