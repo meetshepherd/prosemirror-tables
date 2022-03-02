@@ -141,8 +141,8 @@ export function preventCTX(view, evt, callbacks)
   }
 }
 
-export function handleMouseDown(view, startEvent) {
-  if (startEvent.ctrlKey || startEvent.metaKey) return
+export function handleMouseDown(view, startEvent, callbacks) {
+  if (startEvent.ctrlKey || startEvent.metaKey || startEvent.button === 2) return
 
   let startDOMCell = domInCell(view, startEvent.target), $anchor
   if (startEvent.shiftKey && (view.state.selection instanceof CellSelection)) {
@@ -183,7 +183,22 @@ export function handleMouseDown(view, startEvent) {
     view.root.removeEventListener("mouseup", stop)
     view.root.removeEventListener("dragstart", stop)
     view.root.removeEventListener("mousemove", move)
-    if (key.getState(view.state) != null) view.dispatch(view.state.tr.setMeta(key, -1))
+    if (key.getState(view.state) != null) {
+      const ranges = view.state.selection.ranges;
+      if (ranges.length > 0) {
+        const cellPos = view.state.selection.ranges[0].$from.pos;
+        const cellDOM = view.domAtPos(cellPos).node;
+        const tableDOM = cellDOM.parentNode.parentNode;
+        view.dispatch(view.state.tr.setMeta(key, -1));
+        const cellRect = cellDOM.getBoundingClientRect();
+        const tableRect = tableDOM.getBoundingClientRect();
+        callbacks.selectionChangedOnTable({
+          cellRect,
+          tableRect,
+        });
+        callbacks.contextMenuOnCell(cellRect);
+      }
+    }
   }
 
   function move(event) {

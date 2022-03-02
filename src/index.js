@@ -8,7 +8,7 @@ import {AllSelection, Plugin, Selection} from "prosemirror-state"
 
 import {handleTripleClick, handleKeyDown, handlePaste, handleMouseDown, preventCTX} from "./input"
 import {key as tableEditingKey, isHeadInsideTable, closestCell, closestParent, DefaultCellContent} from "./util"
-import {drawCellSelection, normalizeSelection} from "./cellselection"
+import {drawCellSelection, normalizeSelection, CellSelection} from "./cellselection"
 import {fixTables, fixTablesKey} from "./fixtables"
 
 const sameRect = (r1, r2) => {
@@ -83,7 +83,6 @@ export function tableEditing({
                 // console.debug('here', cell, oldCell);
                 // console.debug('here', table, oldTable);
                 if (!sameRect(oldRect, rect)) {
-                  console.debug('not same rect');
                   callbacks.selectionChangedOnTable({
                     cellRect: domCell.getBoundingClientRect(),
                     tableRect: rect,
@@ -132,6 +131,8 @@ export function tableEditing({
       },
 
       createSelectionBetween(view, anchor, head) {
+        // if (view.state.selection instanceof CellSelection) return undefined;
+
         const currentResolvedPos = view.state.selection.$head.pos;
         const nextResolvedPos = head.pos;
         if (Math.abs(currentResolvedPos - nextResolvedPos) > 1) {
